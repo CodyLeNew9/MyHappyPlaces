@@ -96,13 +96,9 @@ open class HappyPlacesAdapter(private val context: Context, private var list: Ar
         val isDeleted = dbHandler.deleteHappyPlace(list[position])
 
         if (isDeleted > 0) {
-
             list.removeAt(position)
-
             notifyItemRemoved(position)
-
             Toast.makeText(context, "Deleted Place", Toast.LENGTH_SHORT).show()
-
         } else {
             Toast.makeText(context, "Error", Toast.LENGTH_SHORT).show()
             Log.d(TAG, "Error removing item")

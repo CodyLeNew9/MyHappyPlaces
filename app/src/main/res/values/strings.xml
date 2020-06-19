@@ -8,9 +8,13 @@
     <string name="text_add_image">ADD IMAGE</string>
     <string name="btn_text_save">SAVE</string>
 
-    <!--TODO(Step 5: We have added all the String values here which are used in designing an item for recyclerview.)-->
-    <!--START-->
+
     <string name="note_text_no_happy_places_found_yet_kindly_add_one">No Happy Places Found Yet. Kindly add one.</string>
     <string name="image_content_description">image</string>
-    <!--END-->
+
+    <string name="google_maps_api_key">AIzaSyDc7tnEhtylDuI7PwStNqJdTA70kUJsHOw</string>
+
+    <string name="btn_text_view_on_map">VIEW ON MAP</string>
+    <string name="add_place_select_current_location_text">SELECT CURRENT LOCATION</string>
+
 </resources>

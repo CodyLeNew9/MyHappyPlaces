@@ -1,5 +1,6 @@
 package com.example.myhappyplaces.activities
 
+import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
@@ -18,26 +19,33 @@ class HappyPlaceDetailActivity : AppCompatActivity() {
         // This is used to align the xml view to this class
         setContentView(R.layout.activity_happy_place_detail)
 
-        var happyPlaceDetailModel: HappyPlaceModel? = null
+        val happyPlaceDetailModel: HappyPlaceModel
+
+        setSupportActionBar(toolbar_happy_place_detail)
+        supportActionBar!!.setDisplayHomeAsUpEnabled(true)
+
+        toolbar_happy_place_detail.setNavigationOnClickListener {
+            onBackPressed()
+        }
 
         if (intent.hasExtra(MainActivity.EXTRA_PLACE_DETAILS)) {
             // get the Serializable data model class with the details in it
             happyPlaceDetailModel = intent.getParcelableExtra(MainActivity.EXTRA_PLACE_DETAILS) as HappyPlaceModel
-        }
 
-        if (happyPlaceDetailModel != null) {
-
-            setSupportActionBar(toolbar_happy_place_detail)
-            supportActionBar!!.setDisplayHomeAsUpEnabled(true)
             supportActionBar!!.title = happyPlaceDetailModel.title
-
-            toolbar_happy_place_detail.setNavigationOnClickListener {
-                onBackPressed()
-            }
 
             iv_place_image.setImageURI(Uri.parse(happyPlaceDetailModel.image))
             tv_description.text = happyPlaceDetailModel.description
             tv_location.text = happyPlaceDetailModel.location
+
+            btn_view_on_map.setOnClickListener {
+                val intent = Intent(this@HappyPlaceDetailActivity, MapActivity::class.java)
+                intent.putExtra(MainActivity.EXTRA_PLACE_DETAILS, happyPlaceDetailModel)
+                startActivity(intent)
+            }
+        } else {
+            //Should'nt be able to get here
+            supportActionBar!!.title = "ERROR"
         }
     }
 }

@@ -133,9 +133,9 @@ class MainActivity : AppCompatActivity() {
                 getHappyPlacesListFromLocalDB() // Gets the latest list from the local database after item being delete from it.
             }
         }
+
         val deleteItemTouchHelper = ItemTouchHelper(deleteSwipeHandler)
         deleteItemTouchHelper.attachToRecyclerView(rv_happy_places_list)
-        // END
 
     }
 }

@@ -1,6 +1,7 @@
 package com.example.myhappyplaces.activities
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.DatePickerDialog
 import android.content.ActivityNotFoundException
@@ -9,8 +10,10 @@ import android.content.ContextWrapper
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.location.LocationManager
 import android.net.Uri
 import android.os.Bundle
+import android.os.Looper
 import android.provider.MediaStore
 import android.provider.Settings
 import android.util.Log
@@ -21,6 +24,14 @@ import androidx.appcompat.app.AppCompatActivity
 import com.example.myhappyplaces.R
 import com.example.myhappyplaces.database.DatabaseHandler
 import com.example.myhappyplaces.models.HappyPlaceModel
+import com.google.android.gms.common.api.Status
+import com.google.android.gms.location.*
+import com.google.android.libraries.places.api.Places
+import com.google.android.libraries.places.api.model.Place
+import com.google.android.libraries.places.widget.Autocomplete
+import com.google.android.libraries.places.widget.AutocompleteActivity
+import com.google.android.libraries.places.widget.model.AutocompleteActivityMode
+import com.example.myhappyplaces.utils.GetAddressFromLatLng
 import com.karumi.dexter.Dexter
 import com.karumi.dexter.MultiplePermissionsReport
 import com.karumi.dexter.PermissionToken
@@ -46,6 +57,9 @@ class AddHappyPlaceActivity : AppCompatActivity(), View.OnClickListener {
         private const val CAMERA = 2
 
         private const val IMAGE_DIRECTORY = "HappyPlacesImages"
+
+        // A constant variable for place picker
+        private const val PLACE_AUTOCOMPLETE_REQUEST_CODE = 3
     }
 
     private var saveImageToInternalStorage: Uri? = null
@@ -77,6 +91,8 @@ class AddHappyPlaceActivity : AppCompatActivity(), View.OnClickListener {
             updateDateInView()
         }
 
+    private lateinit var mFusedLocationClient: FusedLocationProviderClient // A fused location client variable which is further user to get the user's current location
+
     /**
      * This function is auto created by Android when the Activity Class is created.
      */
@@ -93,6 +109,11 @@ class AddHappyPlaceActivity : AppCompatActivity(), View.OnClickListener {
         // Setting the click event to the back button
         toolbar_add_place.setNavigationOnClickListener {
             onBackPressed()
+        }
+
+        //Initialize the places sdk if it is not initialized earlier.)
+        if (!Places.isInitialized()) {
+            Places.initialize(this@AddHappyPlaceActivity, resources.getString(R.string.google_maps_api_key))
         }
 
         //Assign the details to the variable of data model class which we have created above the details which we will receive through intent.)
@@ -125,6 +146,8 @@ class AddHappyPlaceActivity : AppCompatActivity(), View.OnClickListener {
         et_date.setOnClickListener(this)
         tv_add_image.setOnClickListener(this)
         btn_save.setOnClickListener(this)
+        et_location.setOnClickListener(this)
+        tv_select_current_location.setOnClickListener(this)
     }
 
     //This is a override method after extending the onclick listener interface.)
@@ -216,6 +239,71 @@ class AddHappyPlaceActivity : AppCompatActivity(), View.OnClickListener {
                     }
                 }
             }
+
+            R.id.et_location -> {
+                try {
+                    // These are the list of fields which we required is passed
+                    val fields = listOf(Place.Field.ID, Place.Field.NAME, Place.Field.LAT_LNG, Place.Field.ADDRESS)
+
+                    // Start the autocomplete intent with a unique request code.
+                    val intent = Autocomplete.IntentBuilder(AutocompleteActivityMode.FULLSCREEN, fields).build(this@AddHappyPlaceActivity)
+
+                    startActivityForResult(intent, PLACE_AUTOCOMPLETE_REQUEST_CODE)
+
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+
+            R.id.tv_select_current_location -> {
+
+                if (!isLocationEnabled()) {
+
+                    Toast.makeText(this, "Your location provider is turned off. Please turn it on.", Toast.LENGTH_SHORT).show()
+
+                    // This will redirect you to settings from where you need to turn on the location provider.
+                    val intent = Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
+
+                    startActivity(intent)
+
+                } else {
+                    // For Getting current location of user please have a look at below link for better understanding
+                    // https://www.androdocs.com/kotlin/getting-current-location-latitude-longitude-in-android-using-kotlin.html
+                    Dexter.withContext(this).withPermissions(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
+                        .withListener(object : MultiplePermissionsListener {
+
+                            override fun onPermissionsChecked(report: MultiplePermissionsReport?) {
+
+                                //Log checking
+                                Log.d(TAG, "Is Permission Permanently Denied? ${report!!.isAnyPermissionPermanentlyDenied}")
+
+                                if (report.deniedPermissionResponses.isNotEmpty()) {
+                                    Log.d(TAG, "How Many Permissions Denied? ${report.deniedPermissionResponses.size}")
+                                }
+
+                                if (report.grantedPermissionResponses.isNotEmpty()) {
+                                    Log.d(TAG, "How Many Permissions Accepted? ${report.grantedPermissionResponses.size}")
+                                }
+
+                                when {
+                                    report.areAllPermissionsGranted() -> { //if user selects accept
+                                        requestNewLocationData()
+                                    }
+                                    report.isAnyPermissionPermanentlyDenied -> { //if user selects deny and dont ask again
+                                        showRationalDialogForPermissions()
+                                    }
+                                    else -> { // if user selected deny
+                                        Toast.makeText(this@AddHappyPlaceActivity, "Permission required for this feature", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            }
+
+                            override fun onPermissionRationaleShouldBeShown(permissions: MutableList<PermissionRequest>?, token: PermissionToken?) {
+                                token?.continuePermissionRequest()// to make sure the permission dialog pops up even after deny
+                            }
+                        }).onSameThread().check()
+                }
+            }
         }
     }
 
@@ -231,7 +319,7 @@ class AddHappyPlaceActivity : AppCompatActivity(), View.OnClickListener {
 
         et_date.setText(sdf.format(cal.time).toString()) // A selected date using format which we have used is set to the UI.
 
-        Log.d(TAG, "Update date into field") //this happens third
+        Log.d(TAG, "Updated date into field") //this happens third
     }
 
     /**
@@ -330,6 +418,63 @@ class AddHappyPlaceActivity : AppCompatActivity(), View.OnClickListener {
     }
 
     /**
+     * A function which is used to verify that the location or let's GPS is enable or not of the user's device.
+     */
+    private fun isLocationEnabled(): Boolean {
+        val locationManager: LocationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) || locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
+    }
+
+    //Create a method or let say function to request the current location. Using the fused location provider client.)
+    /**
+     * A function to request the current location. Using the fused location provider client.
+     */
+    @SuppressLint("MissingPermission")
+    private fun requestNewLocationData() {
+
+        val mLocationRequest = LocationRequest()
+        mLocationRequest.priority = LocationRequest.PRIORITY_HIGH_ACCURACY
+        mLocationRequest.interval = 0
+        mLocationRequest.numUpdates = 1
+
+        // Initialize the Fused location variable
+        mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+        mFusedLocationClient.requestLocationUpdates(mLocationRequest, mLocationCallback, Looper.myLooper())
+    }
+
+    //Create a location callback object of fused location provider client where we will get the current location details.)
+    /**
+     * A location callback object of fused location provider client where we will get the current location details.
+     */
+    private val mLocationCallback = object : LocationCallback() {
+        override fun onLocationResult(locationResult: LocationResult) {
+            val mLastLocation = locationResult.lastLocation
+            mLatitude = mLastLocation.latitude
+            Log.d(TAG, "Current Latitude : $mLatitude")
+            mLongitude = mLastLocation.longitude
+            Log.d(TAG, "Current Longitude : $mLongitude")
+
+            //Call the AsyncTask class fot getting an address from the latitude and longitude.)
+            val addressTask = GetAddressFromLatLng(this@AddHappyPlaceActivity, mLatitude, mLongitude)
+
+            addressTask.setAddressListener(object : GetAddressFromLatLng.AddressListener {
+
+                override fun onAddressFound(address: String?) {
+                    Log.d(TAG, "Address : $address")
+                    et_location.setText(address) // Address is set to the edittext
+                }
+
+                override fun onError() {
+                    Log.d(TAG, "Something is wrong with address...")
+                }
+            })
+
+            Log.d(TAG, "Executing get address")
+            addressTask.getAddress()
+        }
+    }
+
+    /**
      * A function used to show the alert dialog when the permissions are denied and need to allow it from settings app info.
      */
     private fun showRationalDialogForPermissions() {
@@ -369,6 +514,7 @@ class AddHappyPlaceActivity : AppCompatActivity(), View.OnClickListener {
         super.onActivityResult(requestCode, resultCode, data)
 
         Log.d(TAG, "onActivityResult")
+        Log.d(TAG, "onResult[PLACE]: resultCode= $resultCode")
 
         //Receive the result of GALLERY and CAMERA.)
         if (resultCode == Activity.RESULT_OK) {
@@ -411,9 +557,23 @@ class AddHappyPlaceActivity : AppCompatActivity(), View.OnClickListener {
 
                     iv_place_image!!.setImageBitmap(thumbnail) // Set to the imageView.
                 }
+            } else if (requestCode == PLACE_AUTOCOMPLETE_REQUEST_CODE) {
+
+                val place= Autocomplete.getPlaceFromIntent(data!!)
+
+                Log.d(TAG, "onActivityResult: place=${place}")
+
+                et_location.setText(place.address)
+                mLatitude = place.latLng!!.latitude
+                mLongitude = place.latLng!!.longitude
             }
         } else if (resultCode == Activity.RESULT_CANCELED) {
             Log.d(TAG, "Activity Cancelled")
+        } else if (resultCode == AutocompleteActivity.RESULT_ERROR) {
+
+            var status: Status? = Autocomplete.getStatusFromIntent(data!!)
+
+            Log.d(TAG, "onResult[PLACE] error: ${status?.statusMessage}")
         }
     }
 
