@@ -75,8 +75,7 @@ open class HappyPlacesAdapter(private val context: Context, private var list: Ar
     fun notifyEditItem(activity: Activity, position: Int, requestCode: Int) {
         val intent = Intent(context, AddHappyPlaceActivity::class.java)
         intent.putExtra(MainActivity.EXTRA_PLACE_DETAILS, list[position])
-        activity.startActivityForResult(intent, requestCode
-        ) // Activity is started with requestCode
+        activity.startActivityForResult(intent, requestCode) // Activity is started with requestCode
 
         notifyItemChanged(position) // Notify any registered observers that the item at position has changed.
     }

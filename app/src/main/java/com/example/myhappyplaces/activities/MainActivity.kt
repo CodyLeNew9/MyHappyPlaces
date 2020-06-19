@@ -102,8 +102,7 @@ class MainActivity : AppCompatActivity() {
         })
 
         //Bind the edit feature class to recyclerview)
-
-        val editSwipeHandler = object : SwipeToEditCallback(this) {
+        val editSwipeHandler = object : SwipeToEditCallback(this) { //object a child class? singleton?
 
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
                 //Call the adapter function when it is swiped)

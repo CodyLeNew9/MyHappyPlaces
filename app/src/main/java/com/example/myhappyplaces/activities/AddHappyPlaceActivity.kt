@@ -52,6 +52,8 @@ class AddHappyPlaceActivity : AppCompatActivity(), View.OnClickListener {
     private var mLatitude: Double = 0.0 // A variable which will hold the latitude value.
     private var mLongitude: Double = 0.0 // A variable which will hold the longitude value.
 
+    private var mHappyPlaceDetails : HappyPlaceModel? = null
+
     /**
      * An variable to get an instance calendar using the default time zone and locale.
      */
@@ -93,7 +95,31 @@ class AddHappyPlaceActivity : AppCompatActivity(), View.OnClickListener {
             onBackPressed()
         }
 
-        updateDateInView()
+        //Assign the details to the variable of data model class which we have created above the details which we will receive through intent.)
+        if (intent.hasExtra(MainActivity.EXTRA_PLACE_DETAILS)) {
+            mHappyPlaceDetails = intent.getParcelableExtra(MainActivity.EXTRA_PLACE_DETAILS) as HappyPlaceModel
+
+            //Filling the existing details to the UI components to edit.)
+            supportActionBar?.title = "Edit Happy Place"
+
+            et_title.setText(mHappyPlaceDetails!!.title)
+            et_description.setText(mHappyPlaceDetails!!.description)
+            et_date.setText(mHappyPlaceDetails!!.date)
+            et_location.setText(mHappyPlaceDetails!!.location)
+            mLatitude = mHappyPlaceDetails!!.latitude
+            mLongitude = mHappyPlaceDetails!!.longitude
+
+            saveImageToInternalStorage = Uri.parse(mHappyPlaceDetails!!.image)
+
+            iv_place_image.setImageURI(saveImageToInternalStorage)
+
+            btn_save.text = "UPDATE"
+
+        } else {
+
+            updateDateInView()
+            supportActionBar?.title = "Add Happy Place"
+        }
 
         //We have extended the onClickListener above and the override method as onClick added and here we are setting a listener to date edittext.)
         et_date.setOnClickListener(this)
