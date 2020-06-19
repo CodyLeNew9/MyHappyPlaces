@@ -169,9 +169,13 @@ class AddHappyPlaceActivity : AppCompatActivity(), View.OnClickListener {
                     saveImageToInternalStorage == null -> { Toast.makeText(this, "Please add image", Toast.LENGTH_SHORT).show() }
 
                     else -> {
+
                         // Assigning all the values to data model class.
                         val happyPlaceModel = HappyPlaceModel(
-                            0,
+
+                            //Changing the id if it is for edit.)
+                            if (mHappyPlaceDetails == null) 0 else mHappyPlaceDetails!!.id,
+
                             et_title.text.toString(),
                             saveImageToInternalStorage.toString(),
                             et_description.text.toString(),
@@ -184,12 +188,30 @@ class AddHappyPlaceActivity : AppCompatActivity(), View.OnClickListener {
                         // Here we initialize the database handler class.
                         val dbHandler = DatabaseHandler(this)
 
-                        val addHappyPlace = dbHandler.addHappyPlace(happyPlaceModel)
+                        //Call add or update details conditionally.)
+                        if (mHappyPlaceDetails == null) {
+                            val addHappyPlace = dbHandler.addHappyPlace(happyPlaceModel)
 
-                        if (addHappyPlace > 0) {
-                            Toast.makeText(this, "The happy place details are inserted successfully.", Toast.LENGTH_SHORT).show()
-                            setResult(Activity.RESULT_OK)
-                            finish();//finishing activity
+                            if (addHappyPlace > 0) {
+                                setResult(Activity.RESULT_OK);
+                                finish()//finishing activity
+                            } else {
+                                Toast.makeText(this, "Error Saving Location", Toast.LENGTH_SHORT).show()
+                                setResult(Activity.RESULT_CANCELED);
+                                finish()//finishing activity
+                            }
+
+                        } else {
+                            val updateHappyPlace = dbHandler.updateHappyPlace(happyPlaceModel)
+
+                            if (updateHappyPlace > 0) {
+                                setResult(Activity.RESULT_OK);
+                                finish()//finishing activity
+                            } else {
+                                Toast.makeText(this, "Error Saving Location", Toast.LENGTH_SHORT).show()
+                                setResult(Activity.RESULT_CANCELED);
+                                finish()//finishing activity
+                            }
                         }
                     }
                 }

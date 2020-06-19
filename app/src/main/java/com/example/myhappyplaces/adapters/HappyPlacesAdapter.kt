@@ -8,10 +8,12 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.recyclerview.widget.RecyclerView
 import com.example.myhappyplaces.R
 import com.example.myhappyplaces.activities.AddHappyPlaceActivity
 import com.example.myhappyplaces.activities.MainActivity
+import com.example.myhappyplaces.database.DatabaseHandler
 import com.example.myhappyplaces.models.HappyPlaceModel
 import kotlinx.android.synthetic.main.item_happy_place.view.*
 
@@ -77,7 +79,34 @@ open class HappyPlacesAdapter(private val context: Context, private var list: Ar
         intent.putExtra(MainActivity.EXTRA_PLACE_DETAILS, list[position])
         activity.startActivityForResult(intent, requestCode) // Activity is started with requestCode
 
-        notifyItemChanged(position) // Notify any registered observers that the item at position has changed.
+        //notifyItemChanged(position) // Notify any registered observers that the item at position has changed.
+    }
+
+    //Create a function to delete the happy place details which is inserted earlier from the local storage.)
+    //
+    /**
+     * A function to delete the added happy place detail from the local storage.
+     */
+    fun removeAt(position: Int) {
+
+        Log.d(TAG, "Removing item ${list[position].title}")
+
+        val dbHandler = DatabaseHandler(context)
+
+        val isDeleted = dbHandler.deleteHappyPlace(list[position])
+
+        if (isDeleted > 0) {
+
+            list.removeAt(position)
+
+            notifyItemRemoved(position)
+
+            Toast.makeText(context, "Deleted Place", Toast.LENGTH_SHORT).show()
+
+        } else {
+            Toast.makeText(context, "Error", Toast.LENGTH_SHORT).show()
+            Log.d(TAG, "Error removing item")
+        }
     }
 
     //Create a function to bind the onclickListener)
